@@ -9,8 +9,8 @@ The code in this repo is based on the master branch of [BVLC/caffe][2] (2017/08/
 - [DNS fine-tuning (pruning)](#1-dynamic-network-surgery-dns)
 - [INQ fine-tuning (quantization)](#2-incremental-network-quantization-inq)
 - [Python scripts for Caffe model checking / model conversion / model comprssion](#3-python-scripts)
-- Support warm-up training
-- Support LarsSGD acceleration
+- [Support warm-up training](#4-warmup-up-training)
+- [Support LarsSGD acceleration](#5-larssgd-algorithm)
 
 
 [TOC]
@@ -275,9 +275,42 @@ more description of scripts to add ...
 
 ----
 
+## 4 Warm-up training
 
+This enables you to  get a linearly increasing `lr` before acctually applying the `lr_policy`. 
+E.g. if you set the following lines in the `solver.prototxt`, the learning rate will linearly increase from 0.0001 to 0.1 in 100 iterations, and afer this, the `lr` will go as the `lr_policy` directs.
+
+> ``` python
+> rampup_interval: 100  # the iter at which warm-up training finishes.
+> rampup_lr: 0.1 # the value at which the `lr` will arrive when warm-up training finishes. My implementation is a little different, but the idea is the same.
+> min_lr: 0.0001  # `lr` will never be smaller than this value.
+
+
+## 5 LarsSGD Algorithm 
+
+
+If you want to use `LarsSGD` algorithm to accelerate your training, the only thing you need to do is to add the folling line in the `solver.prototxt` file:
+
+> type: "LarsSGD"
+
+
+
+See more details at [Reference](#reference)
+
+
+## Reference
+
+[Dynamic Network Surgery for Efficient DNNs][3]
+[Incremental Network Quantization: Towards Lossless CNNs with Low-Precision Weights][4]
+[LARGE BATCH TRAINING OF CONVOLUTIONAL NETWORKS][5]
+
+
+
+-----
 
 [1]: https://github.com/yiwenguo/Dynamic-Network-Surgery
 [2]: https://github.com/BVLC/caffe
-
+[3]: https://arxiv.org/pdf/1608.04493.pdf
+[4]: http://xueshu.baidu.com/s?wd=paperuri%3A%28a139f073e9a7334473f0c0e4706967b3%29&filter=sc_long_sign&tn=SE_xueshusource_2kduw22v&sc_vurl=http%3A%2F%2Farxiv.org%2Fpdf%2F1702.03044&ie=utf-8&sc_us=6694677506676393916
+[5]: http://xueshu.baidu.com/s?wd=paperuri%3A%28bf0392420a35db2b5658d641b09b15b9%29&filter=sc_long_sign&tn=SE_xueshusource_2kduw22v&sc_vurl=http%3A%2F%2Farxiv.org%2Fpdf%2F1708.03888.pdf%3Futm_campaign%3DArtificial%252BIntelligence%252Band%252BDeep%252BLearning%252BWeekly%26utm_medium%3Dweb%26utm_source%3DArtificial_Intelligence_and_Deep_Learning_Weekly_31&ie=utf-8&sc_us=10533273270735469578
 
