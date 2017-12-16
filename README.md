@@ -278,13 +278,14 @@ more description of scripts to add ...
 ## 4 Warm-up training
 
 This enables you to  get a linearly increasing `lr` before acctually applying the `lr_policy`. 
-E.g. if you set the following lines in the `solver.prototxt`, the learning rate will linearly increase from 0.0001 to 0.1 in 100 iterations, and afer this, the `lr` will go as the `lr_policy` directs.
+E.g. if you set the following lines in the `solver.prototxt`, the learning rate will increase linearly from 0.0001 to `base_lr` in 100 iterations, and afer this, the `lr` will go as the `lr_policy` directs.
 
 > ``` python
 > rampup_interval: 100  # the iter at which warm-up training finishes.
-> rampup_lr: 0.1 # the value at which the `lr` will arrive when warm-up training finishes. My implementation is a little different, but the idea is the same.
-> min_lr: 0.0001  # `lr` will never be smaller than this value.
+> rampup_lr: 0.0001 # the initial `lr` value when warm-up training starts. 
+> ```
 
+My implementation is a little different, but the idea is the same.
 
 ## 5 LarsSGD Algorithm 
 
@@ -295,7 +296,7 @@ If you want to use `LarsSGD` algorithm to accelerate your training, the only thi
 
 
 
-See more details at [Reference](#reference)
+See more details about `LarsSGD` algorithm at [Reference](#reference)
 
 
 ## Reference
