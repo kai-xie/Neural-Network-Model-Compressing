@@ -1,7 +1,3 @@
-"""
-convert dns_inq model to compact format (deep compression)
-"""
-
 import os, sys
 import numpy as np
 import pprint as pp
@@ -18,8 +14,12 @@ sys.path.append(caffe_root+"/python")
 import caffe
 
 help_ = """
+
+convert dns_inq model to compact format (deep compression)
+
 Usage:
-    dns_inq2compact.py <src_net.prototxt> <src_model.caffemodel> <target_model.caffemodel>
+    encode_compact.py <src_net.prototxt> <src_model.caffemodel> <target_model.binary>
+
 """
 
 
@@ -30,7 +30,7 @@ else:
     f_src_net = sys.argv[1]
     f_src_model = sys.argv[2]
     f_target_model = sys.argv[3]
-    # f_target_model = sys.argv[3]
+
 
 if not os.path.exists(f_src_net):
     print "Error: %s does not exist!"%(f_src_net)
@@ -95,6 +95,7 @@ def param_to_compact(wb, flag=-1):
     le_16_idx_adder_idx = np.zeros(le_16_idx.size).astype(np.int32)
     for i in range(split):
         le_16_idx_adder_idx[i::split] = np.sum( (le_16_idx[i::split].reshape(1, -1) > gt_16_idx.reshape(-1, 1)), axis = 0) -1
+        
     le_16_idx_adder = cumsum_filler_tmp[le_16_idx_adder_idx]
     # le_16_idx_new = np.cumsum(tmp_nz_idx)[le_16_idx]
     le_16_idx_new = le_16_idx + le_16_idx_adder
