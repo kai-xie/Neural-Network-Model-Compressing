@@ -1,5 +1,6 @@
 import os, sys
 import numpy as np
+import pprint as pp
 
 try: 
     caffe_root = os.environ["CAFFE_ROOT"]
@@ -47,12 +48,16 @@ layers = filter(lambda x:'conv' in x or 'fc' in x or 'ip' in x, net.params.keys(
 f_in = open(f_bin_model, 'rb')
 bits = 4
 num_quantum_value = 7
+check_layer = 1
+np.set_printoptions(threshold='nan')
 
-def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb):
+def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     data = np.zeros(net_data.size)
     if num_nz_wb == 0:
         data = data.reshape(net_data.shape)
         np.copyto(net_data, data)
+        if flag == check_layer:
+            print "num_nz_wb == 0 !"
         return
 
     num_tmp = ((num_nz_wb -1)/2 +1 )*2
@@ -63,19 +68,30 @@ def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb):
     nz_wb[np.arange(1, num_tmp, 2)] = wb_lb % (2**bits)
     nz_idx[np.arange(0, num_tmp, 2)] = idx_lb / (2**bits)
     nz_idx[np.arange(1, num_tmp, 2)] = idx_lb % (2**bits)
- 
+    if flag == check_layer:
+        print "codebook:\n "
+        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook]))
+        print "nz_wb with filling: \n", nz_wb
+        print "nz_idx with filling :\n", nz_idx
+
     nz_wb = nz_wb[np.arange(num_nz_wb)]
     nz_idx = nz_idx[np.arange(num_nz_wb)]
 
     # Recover the matrix
     nz_idx = np.cumsum(nz_idx+1) -1
+    if flag == check_layer:
+        print "real nz_idx :\n", nz_idx
     code = np.zeros(net_data.size, dtype = np.uint8)
     code[nz_idx] = nz_wb
+    if flag == check_layer:
+        print "real wb with 0: \n", codebook[nz_wb]
     data = np.reshape(codebook[code], net_data.shape)
     np.copyto(net_data, data)
     
 
-for layer in layers:
+for i, layer in enumerate(layers):
+    if i ==  check_layer:
+        print "===================== decoding layer: [%s] weights ====================="%layer
     ### Weights ###
     num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)  # num of non-zero weight/bias
     codebook_size = 2**bits
@@ -85,8 +101,10 @@ for layer in layers:
     wb_lb = np.fromfile(f_in, dtype = np.uint8, count = lb_count)
     # low bit index, 4 bits
     idx_lb = np.fromfile(f_in, dtype = np.uint8, count = lb_count)
-    decode_data(net.params[layer][0].data, wb_lb, idx_lb, codebook, num_nz_wb)
+    decode_data(net.params[layer][0].data, wb_lb, idx_lb, codebook, num_nz_wb, flag = i)
 
+    if i ==  check_layer:
+        print "===================== decoding layer: [%s] bias ====================="%layer
     ### Bias ###
     num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)  # num of non-zero weight/bias
     codebook_size = 2**bits
@@ -96,7 +114,7 @@ for layer in layers:
     wb_lb = np.fromfile(f_in, dtype = np.uint8, count = lb_count)
     # low bit index, 4 bits
     idx_lb = np.fromfile(f_in, dtype = np.uint8, count = lb_count)
-    decode_data(net.params[layer][1].data, wb_lb, idx_lb, codebook, num_nz_wb)
+    decode_data(net.params[layer][1].data, wb_lb, idx_lb, codebook, num_nz_wb, flag = i)
     
 net.save(f_normal_model)
 f_in.close()
