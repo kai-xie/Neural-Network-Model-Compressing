@@ -16,9 +16,9 @@ import caffe_pb2
 
 help = '''
 Usage:
-    inq_compact.py <source_inq_net.prototxt> <source_inq.caffemodel> <output_filename> 
+    sqznet_inq_compact.py <source_inq_net.prototxt> <source_inq.caffemodel> <output_filename> 
 
-Converting the Caffe-output INQ model (twice the size of a normal model) to a 4-bit format, all parameters stored, including zeros.
+Converting the Caffe-output SqueezeNet INQ model (twice the size of a normal model) to a 4-bit format, all parameters stored, including zeros.
 
 Code book example: 
 4-bit code:           0000   0001   0010   0011   0100   0101   0110  0111
@@ -40,8 +40,7 @@ if len(sys.argv) != 4:
     print help
     sys.exit(-1)
 else:
-    # sys.argv[1] not used.
-    src_proto = sys.argv[1] # <source_inq_net.prototxt
+    src_proto = sys.argv[1] # <source_inq_net.prototxt  NOT USED NOW!
     src_model = sys.argv[2]  # <source_inq.caffemodel>
     output = sys.argv[3]   # <output.compact>
 
@@ -76,9 +75,8 @@ def save_to_file(wb_inq, param_name, num_kept_value, bits, param_t):
     if (max_exp - min_exp +1) > num_kept_value:
         print "Error: in layer [%s] weight: max_exp - min_exp + 1 > %d, max_exp: %d, min_exp: %d!"%(param_name, num_kept_value, max_exp, min_exp)
         sys.exit()
-
-    min_exp = max_exp - num_kept_value + 1
-
+    
+    min_exp = max_exp - num_kept_value +1
     positive_add_factor = num_kept_value * 2 - max_exp
     negative_add_factor = num_kept_value - 1 - max_exp
 
@@ -106,9 +104,11 @@ def save_to_file(wb_inq, param_name, num_kept_value, bits, param_t):
     np.array([wb_size], dtype = np.int32 ).tofile(fout)
     # print "param count ="
     # save the params
-    if param_t == Param_type.WEIGHT and ("3x3" in param_name or "conv" in param_name):
+    if param_t == Param_type.WEIGHT and ("3x3" in param_name or "conv" in param_name) and param_name != "conv10":
         # the param is weight and is in squeeze3x3 layer
-        # 16 bits stores three 4-bit number
+        # 16 bits stores three 4-bit numbers
+        # only the last layer (conv10) is an exception because its kernel size
+        # is 1X1, so 16 bits should store four 4-bit numbers
 
         num_append = ((wb_size - 1)/3 + 1)*3 - wb_size
         wb_inq = np.append(wb_inq, np.zeros(num_append, dtype = np.uint16))
@@ -116,11 +116,13 @@ def save_to_file(wb_inq, param_name, num_kept_value, bits, param_t):
         print "---- saving size: %d"%wb_size
         wb_to_store = wb_inq[np.arange(0, wb_size, 3)] + wb_inq[np.arange(1, wb_size, 3)]*2**bits + wb_inq[np.arange(2, wb_size, 3)]*2**(2*bits)
         print "==== stored size: %d"%wb_to_store.size
+        '''
         if param_name == 'conv1':
           for i, val in enumerate(wb_to_store):
             print "%4x "%val,
             if (i+1) %10 ==0:
               print ''
+        '''
         print ''
         wb_to_store.tofile(fout)
     else:
@@ -132,11 +134,13 @@ def save_to_file(wb_inq, param_name, num_kept_value, bits, param_t):
         # wb_to_store = wb_inq[np.arange(0, wb_size, 2)] + wb_inq[np.arange(1, wb_size, 2)]*2**bits
         wb_to_store = wb_inq[np.arange(0, wb_size, 4)] + wb_inq[np.arange(1, wb_size, 4)]*2**bits + wb_inq[np.arange(2, wb_size, 4)]*2**(2*bits) + wb_inq[np.arange(3, wb_size, 4)]*2**(3*bits)
         print "==== stored size: %d"%wb_to_store.size
+        '''
         if param_name == 'conv1':
           for i, val in enumerate(wb_to_store):
             print "%4x "%val,
             if (i+1) %10 ==0:
               print ''
+        '''
         print ''
         wb_to_store.tofile(fout)
 
