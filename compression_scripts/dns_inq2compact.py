@@ -5,6 +5,8 @@ convert dns_inq model to compact format (deep compression)
 import os, sys
 import numpy as np
 import pprint as pp
+import datetime
+import time
 
 try: 
     caffe_root = os.environ["CAFFE_ROOT"]
@@ -17,18 +19,17 @@ import caffe
 
 help_ = """
 Usage:
-    dns_inq2compact.py <src_net.prototxt> <src_model.caffemodel> <target_net.prototxt> <target_model.caffemodel>
+    dns_inq2compact.py <src_net.prototxt> <src_model.caffemodel> <target_model.caffemodel>
 """
 
 
-if len(sys.argv) != 5:
+if len(sys.argv) != 4:
     print help_
     sys.exit(-1)
 else:
     f_src_net = sys.argv[1]
     f_src_model = sys.argv[2]
-    f_target_net = sys.argv[3]
-    f_target_model = sys.argv[4]
+    f_target_model = sys.argv[3]
     # f_target_model = sys.argv[3]
 
 if not os.path.exists(f_src_net):
@@ -44,31 +45,35 @@ elif not os.path.exists(f_target_model):
 """
 caffe.set_mode_cpu()
 
-print "f_src_net: %s"%f_src_net
-print "f_src_model: %s"%f_src_model
+# print "f_src_net: %s"%f_src_net
+# print "f_src_model: %s"%f_src_model
 net = caffe.Net(f_src_net, caffe.TEST, weights=f_src_model)
 # target_net = caffe.Net(f_target_net, caffe.TEST)
 
 param_name_list = filter(lambda x: "conv" in x or "ip" in x or "fc" in x , net.params.keys())
-print "param_name_list: ", param_name_list
+print "\n\nlayer list: ", param_name_list
 np.set_printoptions(threshold='nan')
 
 bits = 4
 num_quantum_exp = 7
-check_layer = 1
+check_layer = -1
 
 def param_to_compact(wb, flag=-1):
     nz_idx = np.nonzero(wb)[0]      # nonzero() returns a tuple
+    
     if flag ==check_layer:
         print "origin nz_idx:\n", nz_idx
-
+    
     nz_wb = wb[nz_idx]              # get all the non-zero params
-    nz_idx = nz_idx +1              # assume the idx starts from 1
     if len(nz_wb) == 0:
-        return 0, np.zeros(2**bits), np.array([]), np.array([])
+        return 0, np.zeros(2**bits).astype(np.float32), np.array([]).astype(np.uint8), np.array([]).astype(np.uint8)
+
+    nz_idx = nz_idx +1              # assume the idx starts from 1
     nz_idx = np.concatenate((np.array([nz_idx[0]]), np.diff(nz_idx))) 
+    
     if flag == check_layer:
         print "diff nz_idx:\n", nz_idx
+    
     # tobe store
     param_idx = np.array([]).astype(np.int64)   
     # actural valued idx in param_idx
@@ -104,10 +109,12 @@ def param_to_compact(wb, flag=-1):
         # the last element in codebook is not used.
         codebook[i] = - np.exp2(min_exp + i -1)
         codebook[i+num_quantum_exp] = np.exp2(min_exp + i -1)
+     
     if flag == check_layer:
         print "codebook:\n "
         pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook]))
         print "num_param: \n", num_param
+     
     value_to_bits = {}
     for i, val in enumerate(codebook):
         if i < len(codebook) -1:
@@ -119,35 +126,41 @@ def param_to_compact(wb, flag=-1):
         wb_to_store = np.append(wb_to_store, [0])
         param_idx = np.append(param_idx, [1])  
 
+     
     if flag == check_layer:
         print "size of wb_to_store after append: \n", len(wb_to_store)
         print "wb_to_store: \n"
         pp.pprint(wb_to_store)
+     
     param_idx = param_idx - 1
     if (param_idx >= 2**bits).any():
         print "Error: param_idx should not be great than or equal to %d", 2**bits
         sys.exit()
     # change int64 to uint8
     param_idx = param_idx.astype(np.uint8)
-
+     
     if flag == check_layer:
         print "param_idx: \n", param_idx
         print "param_idx uint8:\n", list(map(hex, param_idx))
-
+     
     wb_tmp = np.array(list(map(vfunc, wb_to_store))).astype(np.uint8)
+
+     
     if flag == check_layer:
         print "wb_float to uint8:\n", list(map(hex,wb_tmp))
         print "wb_float to uint8:\n", wb_tmp
+     
     wb_low_bit = wb_tmp[np.arange(0, len(wb_to_store), 2)]*2**bits + wb_tmp[np.arange(1, len(wb_to_store), 2)]
     # clip to [0~15]
     param_idx_low_bit = param_idx[np.arange(0, len(param_idx), 2)]* 2**bits + param_idx[np.arange(1, len(param_idx), 2)]
 
+     
     if flag == check_layer:
         print "wb_lb : \n", list(map(hex,wb_low_bit))
         print "idx_lb: \n", list(map(hex, param_idx_low_bit))
-
-    # (num_params, codebook, wb, idx)
-    return num_param, codebook.astype(np.float32), wb_low_bit.astype(np.int8), param_idx_low_bit.astype(np.int8)
+     
+    # return (num_params, codebook, wb, idx)
+    return num_param, codebook.astype(np.float32), wb_low_bit.astype(np.uint8), param_idx_low_bit.astype(np.uint8)
 
 def save_data(f_out, num, codebook, lb_wb, lb_idx):
     np.array([num], dtype = np.int32).tofile(f_out)
@@ -159,18 +172,31 @@ def save_data(f_out, num, codebook, lb_wb, lb_idx):
 f_out = open(f_target_model, 'w')
 
 for i, param_name in enumerate(param_name_list):
+    start = time.time()
+    now = datetime.datetime.now()
+    print "encoding layer [%s] weight ..."%param_name, now.strftime('%Y-%m-%d %H:%M:%S')
+     
+     
     if i == check_layer:
         print "====================layer no. [%d] saving [%s] weights ========================="%(i,param_name)
+     
     w_inq = net.params[param_name][0].data.astype(np.float32).flatten()
     num_wb, codebook_wb, lb_wb, lb_idx = param_to_compact(w_inq, i)
     save_data(f_out, num_wb, codebook_wb, lb_wb, lb_idx)
+
+    print "                %s  bias ..."%(" "*len(param_name))
+     
     if i == check_layer:
         print "====================layer no. [%d] saving [%s] bias ========================"%(i, param_name)
+     
     b_inq = net.params[param_name][1].data.astype(np.float32).flatten()
     num_wb, codebook_wb, lb_wb, lb_idx = param_to_compact(b_inq, i)
     save_data(f_out, num_wb, codebook_wb, lb_wb, lb_idx)
+    end = time.time()
+    print "time for layer [%s]: %f seconds"%(param_name, end-start )
+ 
 
-
+print ""
 f_out.close()
 
 

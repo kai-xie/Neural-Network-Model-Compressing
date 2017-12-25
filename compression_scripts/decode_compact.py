@@ -1,6 +1,8 @@
 import os, sys
 import numpy as np
 import pprint as pp
+import datetime
+import time
 
 try: 
     caffe_root = os.environ["CAFFE_ROOT"]
@@ -48,16 +50,22 @@ layers = filter(lambda x:'conv' in x or 'fc' in x or 'ip' in x, net.params.keys(
 f_in = open(f_bin_model, 'rb')
 bits = 4
 num_quantum_value = 7
-check_layer = 1
+check_layer = -1
 np.set_printoptions(threshold='nan')
 
 def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     data = np.zeros(net_data.size)
+    if flag == check_layer:
+        print "num_nz_wb = ", num_nz_wb
     if num_nz_wb == 0:
         data = data.reshape(net_data.shape)
         np.copyto(net_data, data)
         if flag == check_layer:
             print "num_nz_wb == 0 !"
+            '''
+            print "codebook:\n "
+            pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook]))
+            '''
         return
 
     num_tmp = ((num_nz_wb -1)/2 +1 )*2
@@ -70,7 +78,7 @@ def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     nz_idx[np.arange(1, num_tmp, 2)] = idx_lb % (2**bits)
     if flag == check_layer:
         print "codebook:\n "
-        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook]))
+        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook.astype(np.uint32)]))
         print "nz_wb with filling: \n", nz_wb
         print "nz_idx with filling :\n", nz_idx
 
@@ -88,12 +96,17 @@ def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     data = np.reshape(codebook[code], net_data.shape)
     np.copyto(net_data, data)
     
-
+print ""
+total_start = time.time()
 for i, layer in enumerate(layers):
+    now = datetime.datetime.now()
     if i ==  check_layer:
         print "===================== decoding layer: [%s] weights ====================="%layer
+        #f_in.seek(-8, os.SEEK_CUR)
     ### Weights ###
-    num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)  # num of non-zero weight/bias
+    print "decoding layer [%s] weight ..."%layer, now.strftime('%Y-%m-%d %H:%M:%S')
+    start = time.time()
+    num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)[0]  # num of non-zero weight/bias
     codebook_size = 2**bits
     codebook = np.fromfile(f_in, dtype = np.float32, count = codebook_size)
     lb_count = (num_nz_wb - 1)/2 +1
@@ -106,7 +119,8 @@ for i, layer in enumerate(layers):
     if i ==  check_layer:
         print "===================== decoding layer: [%s] bias ====================="%layer
     ### Bias ###
-    num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)  # num of non-zero weight/bias
+    print "                %s  bias ..."%(" "*len(layer))
+    num_nz_wb = np.fromfile(f_in, dtype = np.int32, count = 1)[0]  # num of non-zero weight/bias
     codebook_size = 2**bits
     codebook = np.fromfile(f_in, dtype = np.float32, count = codebook_size)
     lb_count = (num_nz_wb - 1)/2 +1
@@ -115,12 +129,16 @@ for i, layer in enumerate(layers):
     # low bit index, 4 bits
     idx_lb = np.fromfile(f_in, dtype = np.uint8, count = lb_count)
     decode_data(net.params[layer][1].data, wb_lb, idx_lb, codebook, num_nz_wb, flag = i)
+    end = time.time()
+    print "time for layer [%s]: %f seconds"%(layer, end-start )
     
 net.save(f_normal_model)
 f_in.close()
+total_end = time.time()
+total_time =  total_end - total_start
 
 print ""
-print "Model decoded. Saved as %s"%f_normal_model
+print "Model decoded. Saved as %s [time: %f s] "%(f_normal_model, total_time)
 print ""
 
 
