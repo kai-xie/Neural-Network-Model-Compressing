@@ -78,7 +78,7 @@ def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     nz_idx[np.arange(1, num_tmp, 2)] = idx_lb % (2**bits)
     if flag == check_layer:
         print "codebook:\n "
-        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook.astype(np.uint32)]))
+        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook.astype(np.float32)]))
         print "nz_wb with filling: \n", nz_wb
         print "nz_idx with filling :\n", nz_idx
 

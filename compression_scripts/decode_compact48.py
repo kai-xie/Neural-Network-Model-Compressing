@@ -75,24 +75,24 @@ def decode_data(net_data, wb_lb, idx_lb, codebook, num_nz_wb, flag = -1):
     num_tmp = ((num_nz_wb -1)/2 +1 )*2
     nz_wb = np.zeros(num_tmp, dtype = np.uint8)
     # nz_idx = np.zeros(num_tmp, dtype = np.uint8)
-    nz_idx = np.zeros(num_nz_wb, dtype = np.uint8)
+    nz_idx = np.zeros(num_nz_wb, np.int32)
 
-    nz_wb[np.arange(0, num_tmp, 2)] = wb_lb / (2**bits)
-    nz_wb[np.arange(1, num_tmp, 2)] = wb_lb % (2**bits)
+    nz_wb[np.arange(0, num_tmp, 2)] = wb_lb / (2**wb_bits)
+    nz_wb[np.arange(1, num_tmp, 2)] = wb_lb % (2**wb_bits)
     '''
     nz_idx[np.arange(0, num_tmp, 2)] = idx_lb / (2**bits)
     nz_idx[np.arange(1, num_tmp, 2)] = idx_lb % (2**bits)
     '''
-    
-    if flag == check_layer:
-        print "codebook:\n "
-        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook.astype(np.uint32)]))
-        print "nz_wb with filling: \n", nz_wb
-        print "nz_idx with filling :\n", nz_idx
-
     nz_wb = nz_wb[np.arange(num_nz_wb)]
     # nz_idx = nz_idx[np.arange(num_nz_wb)]
     nz_idx[np.arange(num_nz_wb)] =idx_lb[np.arange(num_nz_wb)]
+    
+    if flag == check_layer:
+        print "codebook:\n "
+        pp.pprint(zip( map(hex, [i for i in range(len(codebook))]), [val for val in codebook.astype(np.float32)]))
+        print "nz_wb with filling: \n", nz_wb
+        print "nz_idx with filling :\n", nz_idx
+
 
     # Recover the matrix
     nz_idx = np.cumsum(nz_idx+1) -1

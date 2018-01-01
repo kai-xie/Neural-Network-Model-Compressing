@@ -166,7 +166,7 @@ def param_to_compact(wb, flag=-1):
     wb_to_store[param_idx_valued] = nz_wb
     max_exp = np.log2(np.max(np.fabs(nz_wb)))
     min_exp = max_exp - num_quantum_exp+1
-    codebook = np.zeros(2**wb_bits)
+    codebook = np.zeros(2**wb_bits, dtype=np.float32)
 
     #[0.0, -2^-7, -2^-6, ..., -2^-1, 2^-7, 2^-6, ..., 2^-1]
     for i in range(1, 2**(wb_bits-1)): # 1 ~ 8
@@ -205,16 +205,16 @@ def param_to_compact(wb, flag=-1):
     param_idx = param_idx.astype(np.uint8)
     
     if flag == check_layer:
-        print "param_idx: \n", param_idx
-        print "param_idx uint8:\n", list(map(hex, param_idx))
+        print "param_idx: len: %d\n"%len(param_idx), param_idx
+        print "param_idx uint8: len: %d\n"%len(param_idx), list(map(hex, param_idx))
     
     vfunc = lambda x: value_to_bits[x]
     wb_tmp = np.array(list(map(vfunc, wb_to_store))).astype(np.uint8)
 
      
     if flag == check_layer:
-        print "wb_float to uint8:\n", list(map(hex,wb_tmp))
-        print "wb_float to uint8:\n", wb_tmp
+        print "wb_float to uint8: len: %d\n"%len(wb_tmp), list(map(hex,wb_tmp))
+        print "wb_float to uint8: len: %d\n"%len(wb_tmp), wb_tmp
     
 
     wb_low_bit = wb_tmp[np.arange(0, len(wb_to_store), 2)]*2**wb_bits + wb_tmp[np.arange(1, len(wb_to_store), 2)]
@@ -223,8 +223,8 @@ def param_to_compact(wb, flag=-1):
     param_idx_low_bit = param_idx
      
     if flag == check_layer:
-        print "wb_lb : \n", list(map(hex,wb_low_bit))
-        print "idx_lb: \n", list(map(hex, param_idx_low_bit))
+        print "wb_lb : len: %d \n"%len(wb_low_bit), list(map(hex,wb_low_bit))
+        print "idx_lb: len: %d \n"%len(wb_low_bit), list(map(hex, param_idx_low_bit))
      
     # return (num_params, codebook, wb, idx)
     return num_param, codebook.astype(np.float32), wb_low_bit.astype(np.uint8), param_idx_low_bit.astype(np.uint8)
@@ -268,6 +268,7 @@ for i, param_name in enumerate(param_name_list):
 total_end = time.time()
 total_time = total_end -total_start
 print ""
+print "compact model saved as %s\n"%f_target_model
 print "total time: %f s"%total_time
 print ""
 
