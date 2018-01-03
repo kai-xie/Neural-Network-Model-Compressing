@@ -83,8 +83,8 @@ layer {
   DNS param | Description
   :---: | ---
   `c_rate` | A key parameter for controlling the pruning rate, theoreticall ranging from negative infinity to positive inifinity, but [-2, 5] would be practical. High value yields high pruning rate.
-  `gamma` | High value results in low possibility of pruning in each iteration.
-  `power` | High value results in low possibility of pruning in each iteration.
+  `gamma` | High value results in low possibility of pruning in each iteration. Probability (do surgery) = (1+gamma*iter)^-power
+  `power` | High value results in low possibility of pruning in each iteration. Probability(do surgery) = (1+gamma*iter)^-power
   `iter_stop` | The iteration at which the pruning stops, while the training process might continue. If `iter_stop` is set to negative, no pruning will be performed (i.e. the layer will act as a normal `Convolution` or `InnerProduct` layer).
   `weight_mask_filler` & `bias_mask_filler` | must be `"constant"` `"1"`
 
@@ -302,7 +302,9 @@ See more details about `LarsSGD` algorithm at [Reference](#reference)
 ## Reference
 
 [Dynamic Network Surgery for Efficient DNNs][3]
+
 [Incremental Network Quantization: Towards Lossless CNNs with Low-Precision Weights][4]
+
 [LARGE BATCH TRAINING OF CONVOLUTIONAL NETWORKS][5]
 
 
