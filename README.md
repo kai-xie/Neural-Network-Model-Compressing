@@ -278,7 +278,7 @@ more description of scripts to add ...
 ## 4 Warm-up training
 
 This enables you to  get a linearly increasing `lr` before acctually applying the `lr_policy`. 
-E.g. if you set the following lines in the `solver.prototxt`, the learning rate will increase linearly from 0.0001 to `base_lr` in 100 iterations, and afer this, the `lr` will go as the `lr_policy` directs.
+E.g. if you set the following lines in the `solver.prototxt`, the learning rate will increase linearly from 0.0001 to `base_lr` in 100 iterations, and after this, the `lr` will go as the `lr_policy` directs.
 
 > ``` python
 > rampup_interval: 100  # the iter at which warm-up training finishes.
