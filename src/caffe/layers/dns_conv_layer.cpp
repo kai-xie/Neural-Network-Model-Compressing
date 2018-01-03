@@ -104,7 +104,7 @@ void DNSConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       }
       ncount = nz_w + nz_b;
       this->mu_ = sum_mu / ncount;
-      this->std_ = sqrt((sum_square - ncount * sum_mu*sum_mu)/ncount);
+      this->std_ = sqrt((sum_square - ncount * this->mu_*this->mu_)/ncount);
       // output the percentage of kept parameters.
       LOG(INFO)<< "mu_:" <<mu_<<" "<<"std_:"<<std_<<" "
                << nz_w <<"/" <<this->blobs_[0]->count() 

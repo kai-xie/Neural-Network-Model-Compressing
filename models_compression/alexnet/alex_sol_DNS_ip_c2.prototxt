@@ -1,0 +1,26 @@
+net: "models_compression/alexnet/train_val_DNS_ip_c2.prototxt"
+test_iter: 250
+test_interval: 500
+base_lr: 0.01
+
+# lr_policy: "multistep"
+# gamma: 0.1
+# stepvalue: 2000
+# stepvalue: 8000
+# stepvalue: 30000
+
+lr_policy: "exp"
+gamma: 0.99997350876406621
+
+# rampup_interval: 2000
+# rampup_lr: 0.000005
+# min_lr: 0.000005
+
+display: 20
+max_iter: 200000
+momentum: 0.9
+weight_decay: 0.0005
+snapshot: 500
+snapshot_prefix: "models_compression/alexnet/DNS_alex_ip_c2"
+solver_mode: GPU
+

@@ -1,0 +1,32 @@
+net: "models_compression/alexnet/train_val_inq30.prototxt"
+test_iter: 250
+test_interval: 500
+base_lr: 0.005
+
+# lr_policy: "multistep"
+# gamma: 0.1
+# stepvalue: 2000
+# stepvalue: 8000
+# stepvalue: 30000
+
+lr_policy: "exp"
+# lr ends up 5e-5 at iter 200000
+# gamma: 0.99997350876406621
+# lr ends up 5e-5 at iter 100000
+# gamma: 0.99994701822991805 
+# np.power(gamma, 150000) = 1e-5/0.005
+gamma: 0.99995857013758427
+
+
+rampup_interval: 5000
+rampup_lr: 0.000005
+# min_lr: 0.000005
+
+display: 20
+max_iter: 150000
+momentum: 0.9
+weight_decay: 0.0005
+snapshot: 500
+snapshot_prefix: "models_compression/alexnet/inq30"
+solver_mode: GPU
+
