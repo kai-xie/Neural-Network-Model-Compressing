@@ -1,3 +1,4 @@
+
 name: "LeNet"
 layer {
   name: "mnist"
