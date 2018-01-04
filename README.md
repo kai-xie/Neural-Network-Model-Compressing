@@ -9,7 +9,7 @@ The code in this repo is based on the master branch of [BVLC/caffe][2] (2017/08/
 - [DNS fine-tuning (pruning)](#1-dynamic-network-surgery-dns)
 - [INQ fine-tuning (quantization)](#2-incremental-network-quantization-inq)
 - [Python scripts for Caffe model checking / model conversion / model comprssion](#3-python-scripts)
-- [Support warm-up training](#4-warmup-up-training)
+- [Support warm-up training](#4-warm-up-training)
 - [Support LarsSGD acceleration](#5-larssgd-algorithm)
 
 
