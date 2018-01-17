@@ -125,18 +125,21 @@ void DNSInnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom
     const vector<Blob<Dtype>*>& top) {
 
   const Dtype* weight = this->blobs_[0]->cpu_data();    
-  Dtype* weightMask = this->blobs_[2]->mutable_cpu_data(); 
+  Dtype* weightMask = NULL; 
   Dtype* weightTmp = this->weight_tmp_.mutable_cpu_data(); 
   
   const Dtype* bias = NULL;
   Dtype* biasMask = NULL;  
   Dtype* biasTmp = NULL;
   if (this->bias_term_) {
+    weightMask = this->blobs_[2]->mutable_cpu_data(); 
     bias = this->blobs_[1]->cpu_data(); 
     biasMask = this->blobs_[3]->mutable_cpu_data();
     biasTmp = this->bias_tmp_.mutable_cpu_data();
+  } else {
+    weightMask = this->blobs_[1]->mutable_cpu_data(); 
   }
-   
+  
   if (this->phase_ == TRAIN){
     // Calculate the mean and standard deviation of learnable parameters 
     if (this->std_==0 && this->iter_ == 0){      
@@ -216,7 +219,12 @@ void DNSInnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   // Use the masked weight to propagate back
   const Dtype* top_diff = top[0]->cpu_diff();
   if (this->param_propagate_down_[0]) {
-    const Dtype* weightMask = this->blobs_[2]->cpu_data();
+    const Dtype* weightMask = NULL;
+    if (this->bias_term_) {
+      weightMask = this->blobs_[2]->cpu_data();
+    } else {
+      weightMask = this->blobs_[1]->cpu_data();
+    }
     Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();         
     const Dtype* bottom_data = bottom[0]->cpu_data();    
     // Gradient with respect to weight

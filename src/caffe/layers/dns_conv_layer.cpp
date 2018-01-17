@@ -72,15 +72,20 @@ void DNSConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {  
       
   const Dtype* weight = this->blobs_[0]->cpu_data();    
-  Dtype* weightMask = this->blobs_[2]->mutable_cpu_data(); 
+
+  Dtype* weightMask = NULL; 
   Dtype* weightTmp = this->weight_tmp_.mutable_cpu_data(); 
   const Dtype* bias = NULL;
   Dtype* biasMask = NULL;  
   Dtype* biasTmp = NULL;
+
   if (this->bias_term_) {
+    weightMask = this->blobs_[2]->mutable_cpu_data(); 
     bias = this->blobs_[1]->cpu_data(); 
     biasMask = this->blobs_[3]->mutable_cpu_data();
     biasTmp = this->bias_tmp_.mutable_cpu_data();
+  } else {
+    weightMask = this->blobs_[1]->mutable_cpu_data(); 
   }
 
   if (this->phase_ == TRAIN){
@@ -163,7 +168,14 @@ template <typename Dtype>
 void DNSConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   const Dtype* weightTmp = this->weight_tmp_.cpu_data();  
-  const Dtype* weightMask = this->blobs_[2]->cpu_data();
+
+  const Dtype* weightMask = NULL;
+  if (this->bias_term_) {
+    weightMask = this->blobs_[2]->cpu_data();
+  } else {
+    weightMask = this->blobs_[1]->cpu_data();
+  }
+
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();    
